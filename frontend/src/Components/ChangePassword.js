@@ -68,7 +68,9 @@ function ChangePassword(props) {
         }
       });
     };
-    checkToken(tokens);
+    setInterval(() => {
+      checkToken(tokens);
+    }, 30000);
   }, [tokens]);
 
   const handleChange = (e) => {

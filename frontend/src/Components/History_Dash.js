@@ -21,6 +21,7 @@ function History_Dash(props) {
         }
       });
     };
+
     checkToken(tokens);
   }, [tokens]);
   return (

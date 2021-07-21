@@ -20,7 +20,9 @@ function Dashboard(props) {
         }
       });
     };
-    checkToken(tokens);
+    setInterval(() => {
+      checkToken(tokens);
+    }, 30000);
   }, [tokens]);
 
   return (

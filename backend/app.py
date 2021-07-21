@@ -102,7 +102,7 @@ class LoginAuthentication(Resource):
                 if check_pass:
                     check_email.last_logged_in = datetime.datetime.utcnow()
                     db.session.commit()
-                    token = jwt.encode({"email":email,"name":check_email.name,"img":check_email.profile_img,"points":check_email.points, "exp":datetime.datetime.utcnow() + datetime.timedelta(minutes=1)},"thisisgwardop",algorithm="HS256")
+                    token = jwt.encode({"email":email,"name":check_email.name,"img":check_email.profile_img,"points":check_email.points, "exp":datetime.datetime.utcnow() + datetime.timedelta(minutes=60)},"thisisgwardop",algorithm="HS256")
                     return jsonify({"token": token})
                 else:
                     return jsonify({"error":"Invalid Credentials"})
@@ -122,7 +122,7 @@ class GoogleDat(Resource):
             if check_email:
                 check_email.last_logged_in = datetime.datetime.utcnow()
                 db.session.commit()
-                token = jwt.encode({"email":check_email.email,"name":check_email.name,"img":check_email.profile_img,"points":check_email.points,"exp":datetime.datetime.utcnow() + datetime.timedelta(minutes=1)},"thisisgwardop",algorithm="HS256")
+                token = jwt.encode({"email":check_email.email,"name":check_email.name,"img":check_email.profile_img,"points":check_email.points,"exp":datetime.datetime.utcnow() + datetime.timedelta(minutes=60)},"thisisgwardop",algorithm="HS256")
                 return jsonify({"token": token})
             else:
                 ency_email = sha256_crypt.hash(email)
@@ -131,7 +131,7 @@ class GoogleDat(Resource):
                 db.session.add(add_data)
                 db.session.commit()
                 token = jwt.encode({"email": email, "name": name, "img": image,"points":0,
-                                    "exp": datetime.datetime.utcnow() + datetime.timedelta(minutes=1)}, "thisisgwardop",
+                                    "exp": datetime.datetime.utcnow() + datetime.timedelta(minutes=60)}, "thisisgwardop",
                                    algorithm="HS256")
                 return jsonify({"token":token})
         else:

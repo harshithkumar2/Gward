@@ -29,7 +29,9 @@ function Profile(props) {
         }
       });
     };
-    checkToken(token);
+    setInterval(() => {
+      checkToken(token);
+    }, 30000);
   }, [token]);
 
   const handleUpdate = (e) => {

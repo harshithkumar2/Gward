@@ -1,3 +1,5 @@
+import random
+
 from flask import Flask,jsonify,request,make_response
 from flask_restful import Resource,Api
 from flask_sqlalchemy import SQLAlchemy
@@ -8,8 +10,15 @@ import datetime
 import os
 import json
 import time
+import random
 from werkzeug.utils import secure_filename
 
+
+'''
+for image checking whether duplicate or not
+'''
+from PIL import Image
+import imagehash
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -291,6 +300,66 @@ class GetHistory(Resource):
             return make_response(jsonify({"error":"UnAuthorised Method"}),401)
 
 
+# class Garbage(Resource):
+#     def post(self):
+#         if request.method == 'POST':
+#             point = 0
+#             if 'image' not in request.files:
+#                 return jsonify({"error": "No file"})
+#             if 'weight' not in request.form:
+#                 return jsonify({"error": "Weight cannot be empty"})
+#             file = request.files['image']
+#
+#             if file.filename == '':
+#                 return jsonify({"error": "No selected file"})
+#             if file and allowed_file(file.filename):
+#                 names = str(time.time_ns()) + ".jpg"
+#                 filename = secure_filename(names)
+#                 weight = int(request.form['weight'])
+#                 print(weight)
+#                 email = request.form['email']
+#                 add_image = Signup.query.filter_by(email=email).first()
+#                 if add_image:
+#                     # if weight <= 10:
+#                     #     point = 1
+#                     # elif  10 < weight <= 50:
+#                     #     point = 2
+#                     #
+#                     # elif 50 < weight <= 100:
+#                     #     point = 3
+#                     # elif 100 < weight <= 200:
+#                     #     point = 4
+#                     # elif 200 < weight <= 500:
+#                     #     point = 5
+#                     # elif 500 < weight <= 1000:
+#                     #     point = 6
+#                     # elif 1000 < weight <= 5000:
+#                     #     point = 10
+#                     # elif 5000 < weight <= 10000:
+#                     #     point = 15
+#                     # elif 10000 < weight <= 20000:
+#                     #     point = 20
+#                     # else:
+#                     #     point = 30
+#                     #
+#                     # add_image.points = add_image.points + point
+#
+#                     file.save(os.path.join('../frontend/public/uploads_garbage', filename))
+#                     prediction = predict_image('../frontend/public/uploads_garbage/' + filename)
+#                     print(prediction)
+#                     if prediction == 'plastic':
+#                         add_image.points = add_image.points + 2
+#                     elif prediction == 'cardboard':
+#                         add_image.points = add_image.points + 1
+#                     add_garbage_img = Garbage_details(Images=names, weight=weight, user_id=add_image.id)
+#                     db.session.add(add_garbage_img)
+#                     db.session.commit()
+#                 else:
+#                     return jsonify({"error": "Some error occured"})
+#                 return jsonify({"success": "Detected " + prediction})
+#             else:
+#                 return jsonify({"error": "File Format not supported"})
+
 class Garbage(Resource):
     def post(self):
         if request.method == 'POST':
@@ -334,19 +403,41 @@ class Garbage(Resource):
                     #     point = 30
                     #
                     # add_image.points = add_image.points + point
+
+
+
                     file.save(os.path.join('../frontend/public/uploads_garbage', filename))
+                    # Create the Hash Object of the first image
+                    HDBatmanHash = imagehash.average_hash(Image.open('../frontend/public/uploads_garbage/'+filename))
+                    print('Batman HD Picture: ' + str(HDBatmanHash))
+                    for images in os.listdir('../frontend/public/uploads_garbage/'):
+                        if images == filename:
+                            continue
+
+                    # Create the Hash Object of the second image
+                        SDBatmanHash = imagehash.average_hash(Image.open('../frontend/public/uploads_garbage/'+str(images)))
+                        print('Batman HD Picture: ' + str(SDBatmanHash))
+
+                    # Compare hashes to determine whether the pictures are the same or not
+                        if (HDBatmanHash == SDBatmanHash):
+                            os.remove('../frontend/public/uploads_garbage/'+filename)
+                            print(filename)
+                            return jsonify({"error":"Duplicate Image Found"})
+
                     prediction = predict_image('../frontend/public/uploads_garbage/'+filename)
                     print(prediction)
                     if prediction == 'plastic':
-                        add_image.points = add_image.points + 2
+                        points_declared = random.randint(1,5)
+                        add_image.points = add_image.points + points_declared
                     elif prediction == 'cardboard':
-                        add_image.points = add_image.points + 1
+                        points_declared = random.randint(1, 3)
+                        add_image.points = add_image.points + points_declared
                     add_garbage_img = Garbage_details(Images=names,weight=weight,user_id=add_image.id)
                     db.session.add(add_garbage_img)
                     db.session.commit()
                 else:
                     return jsonify({"error":"Some error occured"})
-                return jsonify({"success": "Upload success"})
+                return jsonify({"success": "Detected "+prediction+'\n'+str(points_declared)+' points'})
             else:
                 return jsonify({"error": "File Format not supported"})
 

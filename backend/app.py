@@ -10,6 +10,18 @@ import json
 import time
 from werkzeug.utils import secure_filename
 
+
+import numpy as np
+import matplotlib.pyplot as plt
+from keras.models import Sequential
+from keras.layers import Convolution2D
+from keras.layers import MaxPooling2D
+from keras.layers import Dense
+from keras.layers import Flatten
+from keras.preprocessing import image
+from keras.models import model_from_json
+from keras.preprocessing.image import ImageDataGenerator
+
 UPLOAD_FOLDER = '../frontend/public/uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg'}
 
@@ -208,6 +220,77 @@ class changePassword(Resource):
         else:
             return jsonify({"error": "unAuthorised method"})
 
+# class Garbage(Resource):
+#     def post(self):
+#         if request.method == 'POST':
+#             point = 0
+#             if 'image' not in request.files :
+#                 return jsonify({"error": "No file"})
+#             if 'weight' not in request.form:
+#                 return jsonify({"error": "Weight cannot be empty"})
+#             file = request.files['image']
+#
+#             if file.filename == '':
+#                 return jsonify({"error": "No selected file"})
+#             if file and allowed_file(file.filename):
+#                 names = str(time.time_ns()) + ".jpg"
+#                 filename = secure_filename(names)
+#                 weight = int(request.form['weight'])
+#                 print(weight)
+#                 email = request.form['email']
+#                 add_image = Signup.query.filter_by(email=email).first()
+#                 if add_image:
+#                     if weight <= 10:
+#                         point = 1
+#                     elif  10 < weight <= 50:
+#                         point = 2
+#
+#                     elif 50 < weight <= 100:
+#                         point = 3
+#                     elif 100 < weight <= 200:
+#                         point = 4
+#                     elif 200 < weight <= 500:
+#                         point = 5
+#                     elif 500 < weight <= 1000:
+#                         point = 6
+#                     elif 1000 < weight <= 5000:
+#                         point = 10
+#                     elif 5000 < weight <= 10000:
+#                         point = 15
+#                     elif 10000 < weight <= 20000:
+#                         point = 20
+#                     else:
+#                         point = 30
+#
+#                     add_image.points = add_image.points + point
+#                     file.save(os.path.join('../frontend/public/uploads_garbage', filename))
+#                     add_garbage_img = Garbage_details(Images=names,weight=weight,user_id=add_image.id)
+#                     db.session.add(add_garbage_img)
+#                     db.session.commit()
+#                 else:
+#                     return jsonify({"error":"Some error occured"})
+#                 return jsonify({"success": "Upload success"})
+#             else:
+#                 return jsonify({"error": "File Format not supported"})
+
+
+class GetHistory(Resource):
+    def get(self):
+        if request.method == 'GET':
+            data = []
+            email = request.args.get("email")
+            getData = Signup.query.filter_by(email=email).first()
+            if getData.garbage_imgs:
+                for i in getData.garbage_imgs:
+                    data.append({"images":i.Images,"weight":i.weight})
+
+                return make_response(jsonify({"data":data}),200)
+            else:
+                return make_response(jsonify({"error":"No History"}),200)
+        else:
+            return make_response(jsonify({"error":"UnAuthorised Method"}),401)
+
+
 class Garbage(Resource):
     def post(self):
         if request.method == 'POST':
@@ -228,30 +311,36 @@ class Garbage(Resource):
                 email = request.form['email']
                 add_image = Signup.query.filter_by(email=email).first()
                 if add_image:
-                    if weight <= 10:
-                        point = 1
-                    elif  10 < weight <= 50:
-                        point = 2
-
-                    elif 50 < weight <= 100:
-                        point = 3
-                    elif 100 < weight <= 200:
-                        point = 4
-                    elif 200 < weight <= 500:
-                        point = 5
-                    elif 500 < weight <= 1000:
-                        point = 6
-                    elif 1000 < weight <= 5000:
-                        point = 10
-                    elif 5000 < weight <= 10000:
-                        point = 15
-                    elif 10000 < weight <= 20000:
-                        point = 20
-                    else:
-                        point = 30
-
-                    add_image.points = add_image.points + point
+                    # if weight <= 10:
+                    #     point = 1
+                    # elif  10 < weight <= 50:
+                    #     point = 2
+                    #
+                    # elif 50 < weight <= 100:
+                    #     point = 3
+                    # elif 100 < weight <= 200:
+                    #     point = 4
+                    # elif 200 < weight <= 500:
+                    #     point = 5
+                    # elif 500 < weight <= 1000:
+                    #     point = 6
+                    # elif 1000 < weight <= 5000:
+                    #     point = 10
+                    # elif 5000 < weight <= 10000:
+                    #     point = 15
+                    # elif 10000 < weight <= 20000:
+                    #     point = 20
+                    # else:
+                    #     point = 30
+                    #
+                    # add_image.points = add_image.points + point
                     file.save(os.path.join('../frontend/public/uploads_garbage', filename))
+                    prediction = predict_image('../frontend/public/uploads_garbage/'+filename)
+                    print(prediction)
+                    if prediction == 'plastic':
+                        add_image.points = add_image.points + 2
+                    elif prediction == 'cardboard':
+                        add_image.points = add_image.points + 1
                     add_garbage_img = Garbage_details(Images=names,weight=weight,user_id=add_image.id)
                     db.session.add(add_garbage_img)
                     db.session.commit()
@@ -261,23 +350,84 @@ class Garbage(Resource):
             else:
                 return jsonify({"error": "File Format not supported"})
 
+# train_datagen = ImageDataGenerator(rescale=1. / 255,
+#                                    shear_range=0.2,
+#                                    zoom_range=0.2,
+#                                    horizontal_flip=True)
+#
+# # Generating images for the Test set
+# test_datagen = ImageDataGenerator(rescale=1. / 255)
+# # Creating training set
+# training_set = train_datagen.flow_from_directory('data/train',
+#                                                  target_size=(64, 64),
+#                                                  batch_size=32,
+#                                                  class_mode='binary')
+# # Creating the Test set
+# test_set = test_datagen.flow_from_directory('data/test',
+#                                             target_size=(64, 64),
+#                                             batch_size=32,
+#                                             class_mode='binary')
+#
+# # step1-convolution
+# classifier.add(Convolution2D(32, 3, 3, input_shape=(64, 64, 3), activation='relu'))
+# # step2-maxpooling
+# classifier.add(MaxPooling2D(pool_size=(2, 2)))
+# # step3-flattening
+# classifier.add(Flatten())
+# # step4-fullconnection
+# classifier.add(Dense(units=128, activation='relu'))
+# classifier.add(Dense(units=1, activation='sigmoid'))
+#
+# classifier.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+# classifier.fit(training_set, steps_per_epoch=1000//35, epochs=25, validation_data=test_set, validation_steps=600//35)
+#
+#
+# # # # serialize model to JSON
+# model_json = classifier.to_json()
+# with open("model.json", "w") as json_file:
+#     json_file.write(model_json)
+# # serialize weights to HDF5
+# classifier.save_weights("model.h5")
+# print("Saved model to disk")
 
-class GetHistory(Resource):
-    def get(self):
-        if request.method == 'GET':
-            data = []
-            email = request.args.get("email")
-            getData = Signup.query.filter_by(email=email).first()
-            if getData.garbage_imgs:
-                for i in getData.garbage_imgs:
-                    data.append({"images":i.Images,"weight":i.weight})
+# # later...
+#
+# # load json and create model
+# json_file = open('model.json', 'r')
+# loaded_model_json = json_file.read()
+# json_file.close()
+# loaded_model = model_from_json(loaded_model_json)
+# # load weights into new model
+# loaded_model.load_weights("model.h5")
+# print("Loaded model from disk")
 
-                return make_response(jsonify({"data":data}),200)
-            else:
-                return make_response(jsonify({"error":"No History"}),200)
-        else:
-            return make_response(jsonify({"error":"UnAuthorised Method"}),401)
-
+##to predict new images
+def predict_image(imagepath):
+    json_file = open('model.json', 'r')
+    loaded_model_json = json_file.read()
+    json_file.close()
+    loaded_model = model_from_json(loaded_model_json)
+    # load weights into new model
+    loaded_model.load_weights("model.h5")
+    print("Loaded model from disk")
+    predict = image.load_img(imagepath, target_size=(64, 64))
+    predict_modified = image.img_to_array(predict)
+    predict_modified = predict_modified / 255
+    predict_modified = np.expand_dims(predict_modified, axis=0)
+    result = loaded_model.predict(predict_modified)
+    print(result[0][0])
+    if result[0][0] >= 0.5:
+        # prediction = 'plastic'
+        # probability = result[0][0]
+        # print("probability = " + str(probability))
+        # print("Prediction = " + prediction)
+        return 'plastic'
+    else:
+        # prediction = 'cardboard'
+        # probability = 1 - result[0][0]
+        # print("probability = " + str(probability))
+        # print("Prediction = " + prediction)
+        return 'cardboard'
 
 
 api.add_resource(SignupDetails,'/login_data')

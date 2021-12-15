@@ -408,18 +408,22 @@ class Garbage(Resource):
 
                     file.save(os.path.join('../frontend/public/uploads_garbage', filename))
                     # Create the Hash Object of the first image
-                    HDBatmanHash = imagehash.average_hash(Image.open('../frontend/public/uploads_garbage/'+filename))
-                    print('Batman HD Picture: ' + str(HDBatmanHash))
+
+                    '''Duplicate image detection part  '''
+
+
+                    user_uploaded_img = imagehash.average_hash(Image.open('../frontend/public/uploads_garbage/'+filename))
+                    print('user uploaded Picture: ' + str(user_uploaded_img))
                     for images in os.listdir('../frontend/public/uploads_garbage/'):
                         if images == filename:
                             continue
 
                     # Create the Hash Object of the second image
-                        SDBatmanHash = imagehash.average_hash(Image.open('../frontend/public/uploads_garbage/'+str(images)))
-                        print('Batman HD Picture: ' + str(SDBatmanHash))
+                        compare_all_images = imagehash.average_hash(Image.open('../frontend/public/uploads_garbage/'+str(images)))
+                        print('compare directory Picture: ' + str(compare_all_images))
 
                     # Compare hashes to determine whether the pictures are the same or not
-                        if (HDBatmanHash == SDBatmanHash):
+                        if (user_uploaded_img == compare_all_images):
                             os.remove('../frontend/public/uploads_garbage/'+filename)
                             print(filename)
                             return jsonify({"error":"Duplicate Image Found"})
